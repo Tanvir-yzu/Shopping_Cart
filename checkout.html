@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .order-summary-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .order-summary-item:last-child {
+            border-bottom: none;
+        }
+        .product-thumbnail {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-5">
+        <div class="row">
+            <!-- Checkout Form -->
+            <div class="col-md-8">
+                <h2 class="mb-4">Checkout</h2>
+                <form id="checkoutForm">
+                    <!-- Shipping Information -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Shipping Information</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="firstName" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="firstName" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="lastName" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="lastName" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="address" class="form-label">Address</label>
+                                    <input type="text" class="form-control" id="address" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="city" class="form-label">City</label>
+                                    <input type="text" class="form-control" id="city" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="state" class="form-label">State</label>
+                                    <input type="text" class="form-control" id="state" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="zip" class="form-label">ZIP Code</label>
+                                    <input type="text" class="form-control" id="zip" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Information -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Payment Information</h5>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="cardNumber" class="form-label">Card Number</label>
+                                    <input type="text" class="form-control" id="cardNumber" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="expiryDate" class="form-label">Expiry Date</label>
+                                    <input type="text" class="form-control" id="expiryDate" placeholder="MM/YY" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="cvv" class="form-label">CVV</label>
+                                    <input type="text" class="form-control" id="cvv" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100">Place Order</button>
+                </form>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Order Summary</h5>
+                        <div id="orderSummary">
+                            <!-- Order items will be inserted here -->
+                        </div>
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="d-flex justify-content-between">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Shipping:</span>
+                                <span id="shipping">$5.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                <strong>Total:</strong>
+                                <strong id="total">$0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-2" role="status">
+                <span class="visually-hidden">Processing...</span>
+            </div>
+            <div>Processing your order...</div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container">
+        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="notificationToast">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Get cart data from localStorage
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        
+        // Display order summary
+        function displayOrderSummary() {
+            const orderSummary = document.getElementById('orderSummary');
+            const subtotalElement = document.getElementById('subtotal');
+            const totalElement = document.getElementById('total');
+
+            let subtotal = 0;
+            const shipping = 5.00;
+
+            orderSummary.innerHTML = cart.map(item => {
+                subtotal += item.price * item.quantity;
+                return `
+                    <div class="order-summary-item d-flex align-items-center">
+                        <img src="${item.image}" class="product-thumbnail me-2" alt="${item.title}">
+                        <div class="flex-grow-1">
+                            <div class="small">${item.title}</div>
+                            <div class="text-muted">Qty: ${item.quantity}</div>
+                        </div>
+                        <div>$${(item.price * item.quantity).toFixed(2)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            subtotalElement.textContent = `$${subtotal.toFixed(2)}`;
+            totalElement.textContent = `$${(subtotal + shipping).toFixed(2)}`;
+        }
+
+        // Toast notification helper
+        function showNotification(title, message, type = 'success') {
+            const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastElement = document.getElementById('notificationToast');
+            
+            // Remove existing background classes
+            toastElement.classList.remove('bg-success', 'bg-danger', 'text-white');
+            
+            // Add appropriate styling
+            if (type === 'success') {
+                toastElement.classList.add('bg-success', 'text-white');
+            } else if (type === 'error') {
+                toastElement.classList.add('bg-danger', 'text-white');
+            }
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            toast.show();
+        }
+
+        // Form validation helper
+        function validateForm() {
+            const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+            const expiryDate = document.getElementById('expiryDate').value;
+            const cvv = document.getElementById('cvv').value;
+
+            // Basic card number validation (16 digits)
+            if (!/^\d{16}$/.test(cardNumber)) {
+                showNotification('Validation Error', 'Please enter a valid 16-digit card number', 'error');
+                return false;
+            }
+
+            // Basic expiry date validation (MM/YY format)
+            if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+                showNotification('Validation Error', 'Please enter expiry date in MM/YY format', 'error');
+                return false;
+            }
+
+            // Basic CVV validation (3-4 digits)
+            if (!/^\d{3,4}$/.test(cvv)) {
+                showNotification('Validation Error', 'Please enter a valid CVV (3-4 digits)', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Handle form submission
+        document.getElementById('checkoutForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const processingOverlay = document.getElementById('processingOverlay');
+            processingOverlay.style.display = 'flex';
+
+            try {
+                // Simulate API call with delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                showNotification(
+                    'Order Successful', 
+                    'Thank you for your order! You will receive a confirmation email shortly.'
+                );
+
+                // Clear cart and redirect after a short delay
+                setTimeout(() => {
+                    localStorage.removeItem('cart');
+                    window.location.href = 'index.html';
+                }, 2000);
+
+            } catch (error) {
+                showNotification(
+                    'Error',
+                    'There was an error processing your order. Please try again.',
+                    'error'
+                );
+            } finally {
+                processingOverlay.style.display = 'none';
+            }
+        });
+
+        // Format card number input
+        document.getElementById('cardNumber').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{4})/g, '$1 ').trim();
+            e.target.value = value.substring(0, 19); // 16 digits + 3 spaces
+        });
+
+        // Format expiry date input
+        document.getElementById('expiryDate').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            e.target.value = value;
+        });
+
+        // Format CVV input
+        document.getElementById('cvv').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        });
+
+        // Initialize
+        displayOrderSummary();
+    </script>
+</body>
+</html>
